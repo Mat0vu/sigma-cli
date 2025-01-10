@@ -1,8 +1,9 @@
+import shutil
 from click.testing import CliRunner
 import pytest
 from sigma.cli.convert import convert
 import sigma.backends.test.backend
-
+import os
 
 def test_convert_help():
     cli = CliRunner()
@@ -253,3 +254,26 @@ def test_convert_invalid_correlation_method():
     )
     assert result.exit_code != 0
     assert "Correlation method 'invalid' is not supported" in result.stdout
+
+
+def test_convert_write_to_output_dir():
+    """Tests if the correct directory is created and the translated rule is stored."""
+    cli = CliRunner()
+
+    output_dir = "output_directory"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "tests/files/valid/sigma_rule.yml",
+            "--output-dir",
+            output_dir,
+        ],
+    )
+    assert result.exit_code == 0
+    assert os.path.exists(output_dir), f"{output_dir} was not created"
+    assert os.path.exists(
+        os.path.join(output_dir, "sigma_rule.yml")
+    ), "rule file was not created"
+    shutil.rmtree(output_dir, ignore_errors=True)
