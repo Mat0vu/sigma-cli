@@ -8,6 +8,7 @@ import click
 
 from sigma.cli.rules import load_rules
 from sigma.conversion.base import Backend
+from sigma.collection import SigmaCollection
 from sigma.exceptions import (
     SigmaError,
     SigmaPipelineNotAllowedForBackendError,
@@ -215,6 +216,7 @@ class ChoiceWithPluginHint(click.Choice):
     type=click.BOOL,
     help="Verbose output.",
 )
+
 def convert(
     target,
     pipeline,
@@ -342,7 +344,19 @@ def convert(
         result = backend.convert(rule_collection, format, correlation_method)
         if output_dir:
             writes_successful = True
-            for index, path_of_input in enumerate(input):
+
+            # Collect all Paths for Rules
+            all_paths = []
+            for dir_path in input:
+                all_paths.extend(
+                    list(
+                        SigmaCollection.resolve_paths(
+                            [dir_path],
+                            recursion_pattern="**/" + file_pattern,
+                        )
+                    )
+                )
+            for index, path_of_input in enumerate(all_paths):
                 original_path_part_to_keep = os.path.sep.join(
                     path_of_input.parts[-nesting_level:]
                 )

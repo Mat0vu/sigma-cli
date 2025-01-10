@@ -257,7 +257,7 @@ def test_convert_invalid_correlation_method():
 
 
 def test_convert_write_to_output_dir():
-    """Tests if the correct directory is created and the translated rule is stored."""
+    """Tests if the correct directory is created and that multiple translated rules are stored there in individual files."""
     cli = CliRunner()
 
     output_dir = "output_directory"
@@ -266,7 +266,7 @@ def test_convert_write_to_output_dir():
         [
             "-t",
             "text_query_test",
-            "tests/files/valid/sigma_rule.yml",
+            "tests/files/valid/",
             "--output-dir",
             output_dir,
         ],
