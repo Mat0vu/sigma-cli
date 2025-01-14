@@ -5,6 +5,7 @@ from sigma.cli.convert import convert
 import sigma.backends.test.backend
 import os
 
+
 def test_convert_help():
     cli = CliRunner()
     result = cli.invoke(convert, ["--help"])
@@ -78,7 +79,8 @@ def test_convert_output_list_of_dict_indent():
 def test_convert_output_str():
     cli = CliRunner()
     result = cli.invoke(
-        convert, ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"]
+        convert,
+        ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"],
     )
     assert "ParentImage" in result.stdout
 
@@ -238,26 +240,32 @@ def test_convert_output_backend_option_list():
     )
     assert '[123, "test"]' in result.stdout
 
+
 def test_convert_correlation_method_without_backend_correlation_support(monkeypatch):
-    monkeypatch.setattr(sigma.backends.test.backend.TextQueryTestBackend, "correlation_methods", None)
+    monkeypatch.setattr(
+        sigma.backends.test.backend.TextQueryTestBackend, "correlation_methods", None
+    )
     cli = CliRunner()
     result = cli.invoke(
-        convert, ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"]
+        convert,
+        ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"],
     )
     assert result.exit_code != 0
     assert "Backend 'text_query_test' does not support correlation" in result.stdout
 
+
 def test_convert_invalid_correlation_method():
     cli = CliRunner()
     result = cli.invoke(
-        convert, ["-t", "text_query_test", "-f", "str", "-c", "invalid", "tests/files/valid"]
+        convert,
+        ["-t", "text_query_test", "-f", "str", "-c", "invalid", "tests/files/valid"],
     )
     assert result.exit_code != 0
     assert "Correlation method 'invalid' is not supported" in result.stdout
 
 
 def test_convert_write_to_output_dir():
-    """Tests if the correct directory is created and that multiple translated rules are stored there in individual files."""
+    """Tests if the correct output directory is created and that multiple translated rules are stored in individual files within one single directory."""
     cli = CliRunner()
 
     output_dir = "output_directory"
@@ -276,4 +284,49 @@ def test_convert_write_to_output_dir():
     assert os.path.exists(
         os.path.join(output_dir, "sigma_rule.yml")
     ), "rule file was not created"
+    shutil.rmtree(output_dir, ignore_errors=True)
+
+
+def test_convert_write_to_output_dir_two_nesting_level():
+    """Tests if the correct output directory is created and that multiple translated rules are stored in individual files, keeping the original directory structure.
+    (e.g. group_one/sigma_rule.yml, group_two/another_sigma_rule.yml)
+    """
+    cli = CliRunner()
+
+    output_dir = "output_directory"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "tests/files/nested_rules",
+            "--output-dir",
+            output_dir,
+            "--nesting-level",
+            "2",
+        ],
+    )
+    assert result.exit_code == 0
+    assert os.path.exists(
+        output_dir
+    ), f"general output directory {output_dir} was not created"
+    dir_rule_files_group_one = os.path.join(output_dir, "group_one")
+    dir_rule_files_group_two = os.path.join(output_dir, "group_two")
+    assert os.path.exists(
+        dir_rule_files_group_one
+    ), f"sub-directory {dir_rule_files_group_one} was not created"
+    assert os.path.exists(
+        dir_rule_files_group_two
+    ), f"sub-directory {dir_rule_files_group_two} was not created"
+
+    path_rule_file_one = os.path.join(dir_rule_files_group_one, "sigma_rule.yml")
+    path_rule_file_two = os.path.join(
+        dir_rule_files_group_two, "another_sigma_rule.yml"
+    )
+    assert os.path.exists(
+        path_rule_file_one
+    ), f"rule file {path_rule_file_one} was not created"
+    assert os.path.exists(
+        path_rule_file_two
+    ), f"rule file {path_rule_file_two} was not created"
     shutil.rmtree(output_dir, ignore_errors=True)
